@@ -11,6 +11,7 @@ import {
   updateSettings,
   type FeedbackEntry,
 } from "@/lib/api";
+import { buildFormLink } from "@/lib/siteUrl";
 
 export function OwnerDashboard() {
   const { user, logout, setUser } = useAuth();
@@ -25,10 +26,7 @@ export function OwnerDashboard() {
   const [loadingSummary, setLoadingSummary] = useState(true);
   const [savingStoreName, setSavingStoreName] = useState(false);
 
-  const formLink = useMemo(() => {
-    if (!businessName || typeof window === "undefined") return "";
-    return `${window.location.origin}/?usaha=${encodeURIComponent(businessName)}`;
-  }, [businessName]);
+  const formLink = useMemo(() => buildFormLink(businessName), [businessName]);
 
   const loadDashboard = useCallback(async () => {
     if (!user) return;
@@ -108,7 +106,7 @@ export function OwnerDashboard() {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8 }}
       transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
-      className="min-h-screen bg-white text-black font-[-apple-system,BlinkMacSystemFont,'Segoe_UI',Roboto,Helvetica,Arial,sans-serif]"
+      className="min-h-screen bg-white text-black font-body"
     >
       <div className="w-full max-w-[420px] mx-auto px-4 py-8 space-y-10">
         {/* Header */}

@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { X } from "lucide-react";
 import { registerUser } from "@/lib/api";
+import { PasswordField } from "./PasswordField";
 
 interface RegisterModalProps {
   open: boolean;
@@ -129,14 +130,15 @@ export function RegisterModal({ open, onClose }: RegisterModalProps) {
                       required
                       autoComplete="email"
                     />
-                    <RegisterField
+                    <PasswordField
                       label="Password"
-                      type="password"
                       placeholder="••••••••"
                       value={password}
                       onChange={setPassword}
                       required
                       autoComplete="new-password"
+                      labelClassName="text-[#8E8E93]"
+                      inputClassName="border-[#E5E5EA] placeholder-[#C0BEB8] focus:border-[#1A1A1A] text-[#1A1A1A]"
                     />
 
                     {error && (

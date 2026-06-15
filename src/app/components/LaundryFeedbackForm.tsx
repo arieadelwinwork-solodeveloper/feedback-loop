@@ -132,17 +132,18 @@ export function LaundryFeedbackForm() {
           Masukan Anda sangat berarti bagi peningkatan kualitas layanan kami.
         </p>
         <p className={`text-[13px] ${theme.textMuted}`}>
-          Formulir ini hanya dapat diisi sekali dari perangkat ini.
+          Formulir untuk usaha ini hanya dapat diisi sekali dari perangkat ini. Anda masih bisa mengisi form usaha lain.
         </p>
       </div>
     );
   }
 
   const theme = getRatingTheme(score);
+  const displayBusinessName = formData.namaUsaha.trim() || "Usaha Anda";
 
   return (
     <div
-      className="min-h-screen py-6 px-3 sm:py-8 sm:px-4 flex justify-center overflow-x-hidden font-[-apple-system,BlinkMacSystemFont,'Segoe_UI',Roboto,Helvetica,Arial,sans-serif] transition-[background] duration-500 ease-out"
+      className="min-h-screen py-6 px-3 sm:py-8 sm:px-4 flex justify-center overflow-x-hidden font-body transition-[background] duration-500 ease-out"
       style={{ background: theme.pageBackground }}
     >
       <div
@@ -150,9 +151,14 @@ export function LaundryFeedbackForm() {
         style={{ background: theme.background }}
       >
         <div className="p-5 sm:p-6 pb-6 sm:pb-7 relative z-10 overflow-visible">
-          <p className={`text-[13px] leading-snug text-center mb-5 transition-colors duration-500 ${theme.subtitleClass}`}>
-            Umpan Balik Langsung Disampaikan Ke Pemilik
-          </p>
+          <div className={`text-center mb-5 transition-colors duration-500 ${theme.subtitleClass}`}>
+            <p className="font-display text-[18px] sm:text-[20px] font-semibold leading-snug tracking-wide">
+              Form Kritik &amp; Saran Untuk Usaha
+            </p>
+            <p className="font-display text-[24px] sm:text-[28px] font-bold leading-tight mt-1.5 tracking-tight">
+              &ldquo;{displayBusinessName}&rdquo;
+            </p>
+          </div>
           <RatingEmojiSlider value={score} onChange={setScore} theme={theme} />
         </div>
 

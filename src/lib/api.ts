@@ -52,6 +52,22 @@ export interface FeedbackEntry {
   createdAt: string;
 }
 
+async function apiFetch(url: string, init?: RequestInit): Promise<Response> {
+  if (import.meta.env.PROD && !API_BASE) {
+    throw new Error(
+      "Aplikasi belum terhubung ke server. Hubungi admin untuk mengatur VITE_API_URL.",
+    );
+  }
+
+  try {
+    return await fetch(url, init);
+  } catch {
+    throw new Error(
+      "Gagal terhubung ke server. Periksa koneksi internet atau konfigurasi API.",
+    );
+  }
+}
+
 async function parseResponse<T>(response: Response): Promise<T> {
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
@@ -61,7 +77,7 @@ async function parseResponse<T>(response: Response): Promise<T> {
 }
 
 export async function registerUser(payload: RegisterPayload) {
-  const response = await fetch(apiUrl("/api/register"), {
+  const response = await apiFetch(apiUrl("/api/register"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -70,7 +86,7 @@ export async function registerUser(payload: RegisterPayload) {
 }
 
 export async function loginUser(payload: LoginPayload) {
-  const response = await fetch(apiUrl("/api/login"), {
+  const response = await apiFetch(apiUrl("/api/login"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -79,7 +95,7 @@ export async function loginUser(payload: LoginPayload) {
 }
 
 export async function fetchMe() {
-  const response = await fetch(apiUrl("/api/me"), { headers: authHeaders() });
+  const response = await apiFetch(apiUrl("/api/me"), { headers: authHeaders() });
   return parseResponse<{ user: User }>(response);
 }
 
@@ -87,7 +103,7 @@ export async function updateSettings(payload: {
   businessName?: string;
   aspects?: string[];
 }) {
-  const response = await fetch(apiUrl("/api/me/settings"), {
+  const response = await apiFetch(apiUrl("/api/me/settings"), {
     method: "PATCH",
     headers: authHeaders(),
     body: JSON.stringify(payload),
@@ -96,12 +112,12 @@ export async function updateSettings(payload: {
 }
 
 export async function fetchFeedbacks() {
-  const response = await fetch(apiUrl("/api/dashboard/feedbacks"), { headers: authHeaders() });
+  const response = await apiFetch(apiUrl("/api/dashboard/feedbacks"), { headers: authHeaders() });
   return parseResponse<{ feedbacks: FeedbackEntry[] }>(response);
 }
 
 export async function fetchAiSummary() {
-  const response = await fetch(apiUrl("/api/dashboard/summary"), { headers: authHeaders() });
+  const response = await apiFetch(apiUrl("/api/dashboard/summary"), { headers: authHeaders() });
   return parseResponse<{ bullets: string[]; status: string }>(response);
 }
 
@@ -114,7 +130,7 @@ export async function submitFeedback(payload: {
   aspects: string[];
   clientId: string;
 }) {
-  const response = await fetch(apiUrl("/api/feedback"), {
+  const response = await apiFetch(apiUrl("/api/feedback"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -123,6 +139,6 @@ export async function submitFeedback(payload: {
 }
 
 export async function fetchFormConfig(usaha: string) {
-  const response = await fetch(apiUrl(`/api/form-config?usaha=${encodeURIComponent(usaha)}`));
+  const response = await apiFetch(apiUrl(`/api/form-config?usaha=${encodeURIComponent(usaha)}`));
   return parseResponse<{ aspects: string[]; businessName: string }>(response);
 }

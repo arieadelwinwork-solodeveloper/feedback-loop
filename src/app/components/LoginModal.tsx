@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { X } from "lucide-react";
 import { useAuth } from "@/app/context/AuthContext";
+import { PasswordField } from "./PasswordField";
 
 interface LoginModalProps {
   open: boolean;
@@ -102,9 +103,8 @@ export function LoginModal({ open, onClose, onSuccess }: LoginModalProps) {
                   required
                   autoComplete="email"
                 />
-                <LoginField
+                <PasswordField
                   label="Password"
-                  type="password"
                   placeholder="••••••••"
                   value={password}
                   onChange={setPassword}
