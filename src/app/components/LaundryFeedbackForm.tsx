@@ -151,11 +151,11 @@ export function LaundryFeedbackForm() {
         style={{ background: theme.background }}
       >
         <div className="p-5 sm:p-6 pb-6 sm:pb-7 relative z-10 overflow-visible">
-          <div className={`text-center mb-5 transition-colors duration-500 ${theme.subtitleClass}`}>
-            <p className="font-display text-[18px] sm:text-[20px] font-semibold leading-snug tracking-wide">
-              Form Kritik &amp; Saran Untuk Usaha
+          <div className={`text-center mb-5 transition-colors duration-500 font-poppins ${theme.subtitleClass}`}>
+            <p className="text-[18px] sm:text-[20px] font-semibold leading-snug tracking-wide">
+              Form Kritik &amp; Saran Untuk
             </p>
-            <p className="font-display text-[24px] sm:text-[28px] font-bold leading-tight mt-1.5 tracking-tight">
+            <p className="text-[24px] sm:text-[28px] font-bold leading-tight mt-1.5 tracking-tight">
               &ldquo;{displayBusinessName}&rdquo;
             </p>
           </div>

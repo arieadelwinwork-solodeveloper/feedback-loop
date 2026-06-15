@@ -20,4 +20,4 @@ services:
       - key: DEEPSEEK_MODEL
         value: deepseek-chat
       - key: CORS_ORIGIN
-        sync: false
+        value: https://feedbackloopindonesia.netlify.app

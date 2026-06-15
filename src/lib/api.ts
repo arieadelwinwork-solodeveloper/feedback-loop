@@ -3,6 +3,8 @@ const TOKEN_KEY = "feedback_loop_token";
 const API_BASE = (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
 
 function apiUrl(path: string) {
+  // Production: same-origin /api (Netlify proxy → Render)
+  if (import.meta.env.PROD) return path;
   return API_BASE ? `${API_BASE}${path}` : path;
 }
 
@@ -53,12 +55,6 @@ export interface FeedbackEntry {
 }
 
 async function apiFetch(url: string, init?: RequestInit): Promise<Response> {
-  if (import.meta.env.PROD && !API_BASE) {
-    throw new Error(
-      "Aplikasi belum terhubung ke server. Hubungi admin untuk mengatur VITE_API_URL.",
-    );
-  }
-
   try {
     return await fetch(url, init);
   } catch {

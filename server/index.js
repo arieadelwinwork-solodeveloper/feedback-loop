@@ -17,9 +17,20 @@ const PORT = process.env.PORT || 3001;
 
 app.set("trust proxy", 1);
 
+const DEFAULT_CORS_ORIGINS = [
+  "https://feedbackloopindonesia.netlify.app",
+  "http://localhost:5173",
+  "http://localhost:3000",
+];
+
 const corsOrigins = process.env.CORS_ORIGIN
-  ? process.env.CORS_ORIGIN.split(",").map((origin) => origin.trim())
-  : true;
+  ? [
+      ...new Set([
+        ...process.env.CORS_ORIGIN.split(",").map((origin) => origin.trim()).filter(Boolean),
+        ...DEFAULT_CORS_ORIGINS,
+      ]),
+    ]
+  : DEFAULT_CORS_ORIGINS;
 
 app.use(cors({ origin: corsOrigins }));
 app.use(express.json());

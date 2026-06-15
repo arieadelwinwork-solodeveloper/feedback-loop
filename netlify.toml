@@ -2,6 +2,13 @@
   command = "npm run build"
   publish = "dist"
 
+# Proxy API ke Render (hindari CORS di browser)
+[[redirects]]
+  from = "/api/*"
+  to = "https://feedback-loop-api.onrender.com/api/:splat"
+  status = 200
+  force = true
+
 # SPA routing (React Router)
 [[redirects]]
   from = "/*"
