@@ -171,12 +171,20 @@ export function RatingEmojiSlider({ value, onChange, theme }: RatingEmojiSliderP
           80% { transform: scale(1.12); }
           100% { transform: scale(1.1); }
         }
+        @keyframes luar-biasa-glow {
+          0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.55); transform: scale(1); }
+          50% { box-shadow: 0 0 0 12px rgba(255, 255, 255, 0); transform: scale(1.15); }
+          100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); transform: scale(1.1); }
+        }
         .emoji-pop-active {
           animation: emoji-pop-bounce 0.42s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
+        .luar-biasa-glow {
+          animation: luar-biasa-glow 0.65s ease-out;
+        }
       `}</style>
 
-      <div className="grid grid-cols-4 gap-1 mb-4">
+      <div className="grid grid-cols-4 gap-0.5 sm:gap-1 mb-4 overflow-visible px-0.5">
         {RATING_OPTIONS.map((option) => {
           const isActive = activeValue === option.value;
           const shouldPop = popValue === option.value;
@@ -186,17 +194,19 @@ export function RatingEmojiSlider({ value, onChange, theme }: RatingEmojiSliderP
               key={option.value}
               type="button"
               onClick={() => handleValueChange(option.value)}
-              className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
+              className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform min-w-0 px-0.5"
             >
               <span
-                className={`inline-block text-[28px] leading-none transition-all duration-200 ${
+                className={`relative inline-flex items-center justify-center text-[26px] sm:text-[28px] leading-none transition-all duration-200 ${
                   isActive ? "opacity-100" : "opacity-35 grayscale"
-                } ${shouldPop ? "emoji-pop-active" : isActive ? "scale-110" : "scale-100"}`}
+                } ${shouldPop ? "emoji-pop-active" : isActive ? "scale-110" : "scale-100"} ${
+                  shouldPop && option.value === 4 ? "luar-biasa-glow" : ""
+                }`}
               >
                 {option.emoji}
               </span>
               <span
-                className={`text-[10px] leading-tight text-center transition-colors duration-300 ${
+                className={`text-[9px] sm:text-[10px] leading-tight text-center transition-colors duration-300 max-w-full truncate px-0.5 ${
                   isActive ? theme.labelActiveClass : theme.labelIdleClass
                 }`}
               >
@@ -226,7 +236,7 @@ export function RatingEmojiSlider({ value, onChange, theme }: RatingEmojiSliderP
         />
         <div
           className="absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white border-2 border-white/90 shadow-sm pointer-events-none transition-all duration-200"
-          style={{ left: `calc(${sliderPercent}% - 8px)` }}
+          style={{ left: `clamp(0px, calc(${sliderPercent}% - 8px), calc(100% - 16px))` }}
         />
       </div>
     </div>

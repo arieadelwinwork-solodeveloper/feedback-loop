@@ -1,8 +1,10 @@
+import confetti from "canvas-confetti";
+
 const PITCH_BY_RATING: Record<number, number> = {
-  1: 349.23, // F4 — paling rendah
-  2: 440.0, // A4
-  3: 554.37, // C#5
-  4: 783.99, // G5 — paling tinggi / cheers
+  1: 349.23,
+  2: 440.0,
+  3: 554.37,
+  4: 783.99,
 };
 
 let sharedContext: AudioContext | null = null;
@@ -77,11 +79,10 @@ export function fireRatingCelebration() {
   }, 120);
 }
 
-async function confettiBurst(options: ConfettiBurstOptions) {
-  const { default: confetti } = await import("canvas-confetti");
+function confettiBurst(options: ConfettiBurstOptions) {
   confetti({
     disableForReducedMotion: true,
-    colors: ["#FFFFFF", "#F5F5F5", "#E8E8E8", "#FFD60A", "#FF9F0A"],
+    colors: ["#FFFFFF", "#FFD60A", "#FF9F0A", "#FDE68A", "#FBBF24"],
     zIndex: 9999,
     ...options,
   });

@@ -142,21 +142,21 @@ export function LaundryFeedbackForm() {
 
   return (
     <div
-      className="min-h-screen py-8 px-4 flex justify-center font-[-apple-system,BlinkMacSystemFont,'Segoe_UI',Roboto,Helvetica,Arial,sans-serif] transition-[background] duration-500 ease-out"
+      className="min-h-screen py-6 px-3 sm:py-8 sm:px-4 flex justify-center overflow-x-hidden font-[-apple-system,BlinkMacSystemFont,'Segoe_UI',Roboto,Helvetica,Arial,sans-serif] transition-[background] duration-500 ease-out"
       style={{ background: theme.pageBackground }}
     >
       <div
-        className="w-full max-w-[420px] rounded-[20px] shadow-[0_8px_30px_rgb(0,0,0,0.12)] overflow-hidden transition-[background] duration-500 ease-out"
+        className="w-full max-w-[420px] min-w-0 rounded-[20px] shadow-[0_8px_30px_rgb(0,0,0,0.12)] overflow-hidden transition-[background] duration-500 ease-out"
         style={{ background: theme.background }}
       >
-        <div className="p-6 pb-7 relative z-10">
+        <div className="p-5 sm:p-6 pb-6 sm:pb-7 relative z-10 overflow-visible">
           <p className={`text-[13px] leading-snug text-center mb-5 transition-colors duration-500 ${theme.subtitleClass}`}>
             Umpan Balik Langsung Disampaikan Ke Pemilik
           </p>
           <RatingEmojiSlider value={score} onChange={setScore} theme={theme} />
         </div>
 
-        <div className="px-5 py-6 space-y-7">
+        <div className="px-4 sm:px-5 py-6 space-y-7 min-w-0">
           
           <div>
             <div className={`rounded-xl border overflow-hidden ${theme.surface} ${theme.surfaceBorder}`}>
@@ -167,7 +167,7 @@ export function LaundryFeedbackForm() {
                   readOnly={isBusinessNameLocked}
                   aria-readonly={isBusinessNameLocked}
                   title={isBusinessNameLocked ? "Nama usaha ditentukan oleh link formulir" : undefined}
-                  className={`text-right flex-1 bg-transparent outline-none text-[15px] ${theme.inputText} ${theme.inputPlaceholder} ${isBusinessNameLocked ? "cursor-not-allowed opacity-80" : ""}`}
+                  className={`w-full min-w-0 text-left bg-transparent outline-none text-[15px] ${theme.inputText} ${theme.inputPlaceholder} ${isBusinessNameLocked ? "cursor-not-allowed opacity-80" : ""}`}
                   value={formData.namaUsaha}
                   onChange={(e) => {
                     if (isBusinessNameLocked) return;
@@ -180,7 +180,7 @@ export function LaundryFeedbackForm() {
                 <input
                   type="text"
                   placeholder="TRX-123"
-                  className={`text-right flex-1 bg-transparent outline-none text-[15px] ${theme.inputText} ${theme.inputPlaceholder}`}
+                  className={`w-full min-w-0 text-left bg-transparent outline-none text-[15px] ${theme.inputText} ${theme.inputPlaceholder}`}
                   value={formData.nomorTransaksi}
                   onChange={e => setFormData({...formData, nomorTransaksi: e.target.value})}
                 />
@@ -190,8 +190,8 @@ export function LaundryFeedbackForm() {
 
           <div>
             <div className={`rounded-xl border overflow-hidden ${theme.surface} ${theme.surfaceBorder}`}>
-              <div className="flex items-center justify-between px-4 py-3.5">
-                <span className={`font-medium text-[15px] ${theme.textPrimary}`}>Kirim secara anonim</span>
+              <div className="flex items-center justify-between gap-3 px-4 py-3.5 min-w-0">
+                <span className={`font-medium text-[14px] sm:text-[15px] min-w-0 flex-1 ${theme.textPrimary}`}>Kirim secara anonim</span>
                 <Toggle checked={isAnonymous} onChange={setIsAnonymous} theme={theme} />
               </div>
               
@@ -209,7 +209,7 @@ export function LaundryFeedbackForm() {
                       <input
                         type="text"
                         placeholder="Nama Anda"
-                        className={`text-right flex-1 bg-transparent outline-none text-[15px] ${theme.inputText} ${theme.inputPlaceholder}`}
+                        className={`w-full min-w-0 text-left bg-transparent outline-none text-[15px] ${theme.inputText} ${theme.inputPlaceholder}`}
                         value={formData.namaKonsumen}
                         onChange={e => setFormData({...formData, namaKonsumen: e.target.value})}
                       />
@@ -219,7 +219,7 @@ export function LaundryFeedbackForm() {
                       <input
                         type="tel"
                         placeholder="0812-XXXX-XXXX"
-                        className={`text-right flex-1 bg-transparent outline-none text-[15px] ${theme.inputText} ${theme.inputPlaceholder}`}
+                        className={`w-full min-w-0 text-left bg-transparent outline-none text-[15px] ${theme.inputText} ${theme.inputPlaceholder}`}
                         value={formData.nomorWA}
                         onChange={e => setFormData({...formData, nomorWA: e.target.value})}
                       />
@@ -237,9 +237,9 @@ export function LaundryFeedbackForm() {
                 <div key={aspect}>
                   <label
                     onClick={() => toggleAspect(aspect)}
-                    className="flex items-center justify-between px-4 py-3.5 cursor-pointer active:opacity-80 transition-opacity"
+                    className="flex items-center justify-between gap-3 px-4 py-3.5 cursor-pointer active:opacity-80 transition-opacity min-w-0"
                   >
-                    <span className={`font-medium text-[15px] ${theme.textPrimary}`}>{aspect}</span>
+                    <span className={`font-medium text-[14px] sm:text-[15px] min-w-0 flex-1 ${theme.textPrimary}`}>{aspect}</span>
                     <div className={`w-5 h-5 rounded-full flex items-center justify-center transition-all duration-200 border ${selectedAspects.includes(aspect) ? `${theme.checkActive}` : theme.checkIdle}`}>
                       {selectedAspects.includes(aspect) && (
                         <Check
@@ -347,11 +347,11 @@ export function LaundryFeedbackForm() {
 
 function FieldRow({ label, children, theme }: { label: string; children: React.ReactNode; theme: RatingTheme }) {
   return (
-    <div className="flex items-center px-4 py-3.5 min-h-[52px]">
-      <span className={`font-medium text-[15px] whitespace-nowrap ${theme.textPrimary}`}>
+    <div className="px-4 py-3.5 min-h-[52px] min-w-0">
+      <span className={`block font-medium text-[13px] sm:text-[15px] mb-1.5 ${theme.textPrimary}`}>
         {label}
       </span>
-      <div className="flex-1 ml-4 flex justify-end">
+      <div className="min-w-0 w-full">
         {children}
       </div>
     </div>
