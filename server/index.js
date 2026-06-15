@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import crypto from "crypto";
 import {
   DEFAULT_ASPECTS,
   findProfileByBusinessName,
@@ -14,12 +15,61 @@ import {
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+app.set("trust proxy", 1);
+
 const corsOrigins = process.env.CORS_ORIGIN
   ? process.env.CORS_ORIGIN.split(",").map((origin) => origin.trim())
   : true;
 
 app.use(cors({ origin: corsOrigins }));
 app.use(express.json());
+
+function buildClientKey(req, clientId) {
+  const trimmedId = String(clientId ?? "").trim();
+  if (trimmedId) {
+    return crypto.createHash("sha256").update(trimmedId).digest("hex");
+  }
+
+  const forwarded = req.headers["x-forwarded-for"];
+  const ip = typeof forwarded === "string"
+    ? forwarded.split(",")[0]?.trim()
+    : req.ip;
+
+  return crypto.createHash("sha256").update(`ip:${ip ?? "unknown"}`).digest("hex");
+}
+
+async function hasSubmissionLock(businessName, clientKey) {
+  const { data, error } = await supabaseAdmin
+    .from("feedback_submission_locks")
+    .select("id")
+    .eq("business_name", businessName)
+    .eq("client_key", clientKey)
+    .maybeSingle();
+
+  if (error) throw error;
+  return Boolean(data);
+}
+
+async function createSubmissionLock(businessName, clientKey) {
+  const { error } = await supabaseAdmin.from("feedback_submission_locks").insert({
+    business_name: businessName,
+    client_key: clientKey,
+  });
+
+  if (error?.code === "23505") {
+    return false;
+  }
+  if (error) throw error;
+  return true;
+}
+
+async function removeSubmissionLock(businessName, clientKey) {
+  await supabaseAdmin
+    .from("feedback_submission_locks")
+    .delete()
+    .eq("business_name", businessName)
+    .eq("client_key", clientKey);
+}
 
 app.get("/api/health", async (_req, res) => {
   try {
@@ -251,6 +301,7 @@ app.post("/api/feedback", async (req, res) => {
       rating,
       text,
       aspects,
+      clientId,
     } = req.body ?? {};
 
     if (!businessName?.trim() || !rating) {
@@ -258,6 +309,21 @@ app.post("/api/feedback", async (req, res) => {
     }
 
     const trimmedBusinessName = String(businessName).trim();
+    const clientKey = buildClientKey(req, clientId);
+
+    if (await hasSubmissionLock(trimmedBusinessName, clientKey)) {
+      return res.status(409).json({
+        error: "Formulir untuk usaha ini hanya bisa diisi sekali dari perangkat ini.",
+      });
+    }
+
+    const lockCreated = await createSubmissionLock(trimmedBusinessName, clientKey);
+    if (!lockCreated) {
+      return res.status(409).json({
+        error: "Formulir untuk usaha ini hanya bisa diisi sekali dari perangkat ini.",
+      });
+    }
+
     const owner = await findProfileByBusinessName(trimmedBusinessName);
 
     const { data, error } = await supabaseAdmin
@@ -276,7 +342,10 @@ app.post("/api/feedback", async (req, res) => {
       .select("*")
       .single();
 
-    if (error) throw error;
+    if (error) {
+      await removeSubmissionLock(trimmedBusinessName, clientKey);
+      throw error;
+    }
 
     return res.status(201).json({
       message: "Feedback berhasil dikirim.",

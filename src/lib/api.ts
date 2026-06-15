@@ -112,6 +112,7 @@ export async function submitFeedback(payload: {
   rating: number;
   text: string;
   aspects: string[];
+  clientId: string;
 }) {
   const response = await fetch(apiUrl("/api/feedback"), {
     method: "POST",

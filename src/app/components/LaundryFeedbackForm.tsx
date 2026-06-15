@@ -3,6 +3,11 @@ import { motion, AnimatePresence } from "motion/react";
 import { Check, CheckCircle2 } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router";
 import { fetchFormConfig, submitFeedback } from "@/lib/api";
+import {
+  getOrCreateClientId,
+  hasSubmittedFeedback,
+  markFeedbackSubmitted,
+} from "@/lib/feedbackSubmission";
 import { LoginModal } from "./LoginModal";
 import { RegisterModal } from "./RegisterModal";
 import { RatingEmojiSlider, getRatingTheme, type RatingTheme } from "./RatingEmojiSlider";
@@ -27,11 +32,11 @@ export function LaundryFeedbackForm() {
   const [registerOpen, setRegisterOpen] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   const usahaFromLink = searchParams.get("usaha")?.trim() ?? "";
   const isBusinessNameLocked = Boolean(usahaFromLink);
 
-  // Form states
   const [formData, setFormData] = useState({
     namaUsaha: "",
     nomorTransaksi: "",
@@ -43,11 +48,26 @@ export function LaundryFeedbackForm() {
   });
 
   useEffect(() => {
+    const businessName = formData.namaUsaha.trim();
+    if (businessName && hasSubmittedFeedback(businessName)) {
+      setSubmitted(true);
+    }
+  }, [formData.namaUsaha]);
+
+  useEffect(() => {
     if (!usahaFromLink) return;
+
+    if (hasSubmittedFeedback(usahaFromLink)) {
+      setSubmitted(true);
+    }
 
     setFormData((prev) => ({ ...prev, namaUsaha: usahaFromLink }));
     fetchFormConfig(usahaFromLink)
       .then(({ aspects, businessName }) => {
+        const resolvedName = businessName || usahaFromLink;
+        if (hasSubmittedFeedback(resolvedName)) {
+          setSubmitted(true);
+        }
         if (businessName) {
           setFormData((prev) => ({ ...prev, namaUsaha: businessName }));
         }
@@ -65,23 +85,33 @@ export function LaundryFeedbackForm() {
   const handleSubmit = async () => {
     if (!formData.namaUsaha.trim()) return;
 
+    setSubmitError("");
     setSubmitting(true);
     try {
       const text = [formData.kronologi, formData.saran, formData.kualitas]
         .filter(Boolean)
         .join(" · ");
 
+      const businessName = formData.namaUsaha.trim();
+
       await submitFeedback({
-        businessName: formData.namaUsaha.trim(),
+        businessName,
         consumerName: formData.namaKonsumen,
         isAnonymous,
         rating: score,
         text,
         aspects: selectedAspects,
+        clientId: getOrCreateClientId(),
       });
+      markFeedbackSubmitted(businessName);
       setSubmitted(true);
     } catch (error) {
-      console.error(error);
+      const message = error instanceof Error ? error.message : "Gagal mengirim feedback.";
+      setSubmitError(message);
+      if (message.includes("hanya bisa diisi sekali")) {
+        markFeedbackSubmitted(formData.namaUsaha.trim());
+        setSubmitted(true);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -98,15 +128,12 @@ export function LaundryFeedbackForm() {
           <CheckCircle2 className={`w-16 h-16 mb-4 mx-auto ${theme.textPrimary}`} strokeWidth={1.5} />
         </motion.div>
         <h2 className={`text-xl font-semibold mb-2 ${theme.textPrimary}`}>Terima Kasih!</h2>
-        <p className={`text-[15px] mb-8 ${theme.textSecondary}`}>
+        <p className={`text-[15px] mb-4 ${theme.textSecondary}`}>
           Masukan Anda sangat berarti bagi peningkatan kualitas layanan kami.
         </p>
-        <button
-          onClick={() => setSubmitted(false)}
-          className={`px-8 py-3 rounded-full border-2 font-medium active:scale-95 transition-transform ${theme.buttonOutline} ${theme.buttonOutlineText}`}
-        >
-          Kirim Masukan Lagi
-        </button>
+        <p className={`text-[13px] ${theme.textMuted}`}>
+          Formulir ini hanya dapat diisi sekali dari perangkat ini.
+        </p>
       </div>
     );
   }
@@ -263,8 +290,13 @@ export function LaundryFeedbackForm() {
             >
               {submitting ? "Mengirim..." : "Kirim Feedback"}
             </button>
+            {submitError && (
+              <p className="text-center text-[13px] mt-3 font-light text-red-600 leading-snug">
+                {submitError}
+              </p>
+            )}
             <p className={`text-center text-[13px] mt-4 font-medium ${theme.textMuted}`}>
-              Data kamu aman
+              Data kamu aman · Satu kali isi per perangkat
             </p>
           </div>
 
