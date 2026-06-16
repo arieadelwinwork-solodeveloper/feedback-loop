@@ -21,3 +21,5 @@ services:
         value: deepseek-chat
       - key: CORS_ORIGIN
         value: https://feedbackloopindonesia.netlify.app
+      - key: TURNSTILE_SECRET_KEY
+        sync: false

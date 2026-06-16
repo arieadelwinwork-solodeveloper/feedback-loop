@@ -49,9 +49,13 @@ export function mapFeedback(row) {
   };
 }
 
+import { AUTH_COOKIE_NAME } from "./security.js";
+
 export async function getAuthUserFromRequest(req) {
-  const auth = req.headers.authorization ?? "";
-  const token = auth.startsWith("Bearer ") ? auth.slice(7) : null;
+  const cookieToken = req.cookies?.[AUTH_COOKIE_NAME];
+  const headerAuth = req.headers.authorization ?? "";
+  const headerToken = headerAuth.startsWith("Bearer ") ? headerAuth.slice(7) : null;
+  const token = cookieToken || headerToken;
   if (!token) return null;
 
   const { data, error } = await supabaseAdmin.auth.getUser(token);
@@ -71,14 +75,24 @@ export async function getProfileByUserId(userId) {
 }
 
 export async function findProfileByBusinessName(businessName) {
+  const trimmed = businessName.trim();
+  if (!trimmed) return null;
+
   const { data, error } = await supabaseAdmin
-    .from("profiles")
-    .select("*")
-    .ilike("business_name", businessName.trim())
+    .rpc("find_profile_by_business_name", { p_business_name: trimmed })
     .maybeSingle();
 
   if (error) throw error;
   return data;
+}
+
+export async function isUsernameTaken(username) {
+  const { data, error } = await supabaseAdmin.rpc("profile_username_taken", {
+    p_username: username.trim(),
+  });
+
+  if (error) throw error;
+  return Boolean(data);
 }
 
 export async function fetchOwnerFeedbacks(userId) {

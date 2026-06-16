@@ -1,9 +1,10 @@
-import { useState, type FormEvent } from "react";
+import { useState, useCallback, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { X } from "lucide-react";
 import { registerUser } from "@/lib/api";
 import { PasswordField } from "./PasswordField";
+import { isTurnstileEnabled, TurnstileWidget } from "./TurnstileWidget";
 
 interface RegisterModalProps {
   open: boolean;
@@ -17,6 +18,15 @@ export function RegisterModal({ open, onClose }: RegisterModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+
+  const handleCaptchaToken = useCallback((token: string) => {
+    setCaptchaToken(token);
+  }, []);
+
+  const handleCaptchaExpire = useCallback(() => {
+    setCaptchaToken(null);
+  }, []);
 
   const resetForm = () => {
     setUsername("");
@@ -25,6 +35,7 @@ export function RegisterModal({ open, onClose }: RegisterModalProps) {
     setError("");
     setSuccess(false);
     setLoading(false);
+    setCaptchaToken(null);
   };
 
   const handleClose = () => {
@@ -35,10 +46,21 @@ export function RegisterModal({ open, onClose }: RegisterModalProps) {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
+
+    if (isTurnstileEnabled() && !captchaToken) {
+      setError("Selesaikan verifikasi keamanan terlebih dahulu.");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      await registerUser({ username, email, password });
+      await registerUser({
+        username,
+        email,
+        password,
+        captchaToken: captchaToken ?? undefined,
+      });
       setSuccess(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Pendaftaran gagal. Coba lagi.");
@@ -132,7 +154,7 @@ export function RegisterModal({ open, onClose }: RegisterModalProps) {
                     />
                     <PasswordField
                       label="Password"
-                      placeholder="••••••••"
+                      placeholder="Min. 8 karakter, huruf & angka"
                       value={password}
                       onChange={setPassword}
                       required
@@ -140,6 +162,8 @@ export function RegisterModal({ open, onClose }: RegisterModalProps) {
                       labelClassName="text-[#8E8E93]"
                       inputClassName="border-[#E5E5EA] placeholder-[#C0BEB8] focus:border-[#1A1A1A] text-[#1A1A1A]"
                     />
+
+                    <TurnstileWidget onToken={handleCaptchaToken} onExpire={handleCaptchaExpire} />
 
                     {error && (
                       <p className="text-[13px] font-light text-red-500 text-center leading-snug">
@@ -149,7 +173,7 @@ export function RegisterModal({ open, onClose }: RegisterModalProps) {
 
                     <button
                       type="submit"
-                      disabled={loading}
+                      disabled={loading || (isTurnstileEnabled() && !captchaToken)}
                       className="w-full bg-[#1A1A1A] text-white font-medium py-[14px] rounded-full active:scale-[0.98] transition-transform text-[15px] disabled:opacity-50 disabled:cursor-not-allowed mt-2"
                     >
                       {loading ? "Memproses..." : "Daftar Sekarang"}

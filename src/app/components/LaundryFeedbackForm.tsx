@@ -1,16 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Check, CheckCircle2 } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router";
 import { fetchFormConfig, submitFeedback } from "@/lib/api";
-import {
-  getOrCreateClientId,
-  hasSubmittedFeedback,
-  markFeedbackSubmitted,
-} from "@/lib/feedbackSubmission";
+import { hasSubmittedFeedback, markFeedbackSubmitted } from "@/lib/feedbackSubmission";
 import { LoginModal } from "./LoginModal";
 import { RegisterModal } from "./RegisterModal";
 import { RatingEmojiSlider, getRatingTheme, type RatingTheme } from "./RatingEmojiSlider";
+import { isTurnstileEnabled, TurnstileWidget } from "./TurnstileWidget";
 
 const DEFAULT_ASPECTS = [
   "Kualitas layanan",
@@ -33,6 +30,15 @@ export function LaundryFeedbackForm() {
   const [loginOpen, setLoginOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+
+  const handleCaptchaToken = useCallback((token: string) => {
+    setCaptchaToken(token);
+  }, []);
+
+  const handleCaptchaExpire = useCallback(() => {
+    setCaptchaToken(null);
+  }, []);
 
   const usahaFromLink = searchParams.get("usaha")?.trim() ?? "";
   const isBusinessNameLocked = Boolean(usahaFromLink);
@@ -85,6 +91,11 @@ export function LaundryFeedbackForm() {
   const handleSubmit = async () => {
     if (!formData.namaUsaha.trim()) return;
 
+    if (isTurnstileEnabled() && !captchaToken) {
+      setSubmitError("Selesaikan verifikasi keamanan terlebih dahulu.");
+      return;
+    }
+
     setSubmitError("");
     setSubmitting(true);
     try {
@@ -101,7 +112,7 @@ export function LaundryFeedbackForm() {
         rating: score,
         text,
         aspects: selectedAspects,
-        clientId: getOrCreateClientId(),
+        captchaToken: captchaToken ?? undefined,
       });
       markFeedbackSubmitted(businessName);
       setSubmitted(true);
@@ -289,9 +300,10 @@ export function LaundryFeedbackForm() {
           </div>
 
           <div className="pt-4 pb-2">
+            <TurnstileWidget onToken={handleCaptchaToken} onExpire={handleCaptchaExpire} />
             <button
               onClick={handleSubmit}
-              disabled={submitting}
+              disabled={submitting || (isTurnstileEnabled() && !captchaToken)}
               className={`w-full font-semibold py-[16px] rounded-full active:scale-[0.98] transition-all duration-300 text-[16px] disabled:opacity-50 ${theme.buttonPrimary}`}
             >
               {submitting ? "Mengirim..." : "Kirim Feedback"}

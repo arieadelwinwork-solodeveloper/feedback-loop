@@ -7,19 +7,13 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import {
-  fetchMe,
-  loginUser,
-  setAuthToken,
-  getAuthToken,
-  type User,
-} from "@/lib/api";
+import { fetchMe, loginUser, logoutUser, type User } from "@/lib/api";
 
 interface AuthContextValue {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<User>;
-  logout: () => void;
+  logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   setUser: (user: User | null) => void;
 }
@@ -31,34 +25,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const refreshUser = useCallback(async () => {
-    const token = getAuthToken();
-    if (!token) {
+    try {
+      const { user: me } = await fetchMe();
+      setUser(me);
+    } catch {
       setUser(null);
-      return;
     }
-    const { user: me } = await fetchMe();
-    setUser(me);
   }, []);
 
   useEffect(() => {
-    refreshUser()
-      .catch(() => {
-        setAuthToken(null);
-        setUser(null);
-      })
-      .finally(() => setLoading(false));
+    localStorage.removeItem("feedback_loop_token");
+    refreshUser().finally(() => setLoading(false));
   }, [refreshUser]);
 
   const login = useCallback(async (email: string, password: string) => {
-    const { token, user: loggedInUser } = await loginUser({ email, password });
-    setAuthToken(token);
+    const { user: loggedInUser } = await loginUser({ email, password });
     setUser(loggedInUser);
     return loggedInUser;
   }, []);
 
-  const logout = useCallback(() => {
-    setAuthToken(null);
-    setUser(null);
+  const logout = useCallback(async () => {
+    try {
+      await logoutUser();
+    } finally {
+      setUser(null);
+    }
   }, []);
 
   const value = useMemo(

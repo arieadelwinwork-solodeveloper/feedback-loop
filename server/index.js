@@ -1,19 +1,39 @@
 import express from "express";
 import cors from "cors";
-import crypto from "crypto";
+import cookieParser from "cookie-parser";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import {
   DEFAULT_ASPECTS,
   findProfileByBusinessName,
   fetchOwnerFeedbacks,
   getAuthUserFromRequest,
   getProfileByUserId,
+  isUsernameTaken,
   mapFeedback,
   mapProfile,
   supabaseAdmin,
 } from "./supabase.js";
+import {
+  AUTH_COOKIE_NAME,
+  buildSubmissionKey,
+  getAuthCookieOptions,
+  getClientIp,
+  validatePassword,
+  verifyTurnstile,
+} from "./security.js";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+const LIMITS = {
+  businessName: 100,
+  consumerName: 100,
+  feedbackText: 2000,
+  aspectCount: 10,
+  aspectLength: 50,
+  username: 50,
+};
 
 app.set("trust proxy", 1);
 
@@ -32,21 +52,62 @@ const corsOrigins = process.env.CORS_ORIGIN
     ]
   : DEFAULT_CORS_ORIGINS;
 
-app.use(cors({ origin: corsOrigins }));
-app.use(express.json());
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Terlalu banyak percobaan. Coba lagi nanti." },
+});
 
-function buildClientKey(req, clientId) {
-  const trimmedId = String(clientId ?? "").trim();
-  if (trimmedId) {
-    return crypto.createHash("sha256").update(trimmedId).digest("hex");
-  }
+const feedbackLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Terlalu banyak pengiriman feedback. Coba lagi nanti." },
+});
 
-  const forwarded = req.headers["x-forwarded-for"];
-  const ip = typeof forwarded === "string"
-    ? forwarded.split(",")[0]?.trim()
-    : req.ip;
+app.use(helmet({ contentSecurityPolicy: false }));
+app.use(cors({ origin: corsOrigins, credentials: true }));
+app.use(cookieParser());
+app.use(express.json({ limit: "32kb" }));
 
-  return crypto.createHash("sha256").update(`ip:${ip ?? "unknown"}`).digest("hex");
+function trimString(value, maxLength) {
+  return String(value ?? "").trim().slice(0, maxLength);
+}
+
+function normalizeAspects(aspects) {
+  if (!Array.isArray(aspects)) return [];
+  return aspects
+    .map((item) => trimString(item, LIMITS.aspectLength))
+    .filter(Boolean)
+    .slice(0, LIMITS.aspectCount);
+}
+
+function parseRating(rating) {
+  const value = Number(rating);
+  if (!Number.isInteger(value) || value < 1 || value > 4) return null;
+  return value;
+}
+
+function setAuthCookie(res, token) {
+  res.cookie(AUTH_COOKIE_NAME, token, getAuthCookieOptions());
+}
+
+function clearAuthCookie(res) {
+  res.clearCookie(AUTH_COOKIE_NAME, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+  });
+}
+
+async function requireTurnstile(req, captchaToken) {
+  const valid = await verifyTurnstile(captchaToken, getClientIp(req));
+  if (valid) return null;
+  return "Verifikasi keamanan gagal. Muat ulang halaman dan coba lagi.";
 }
 
 async function hasSubmissionLock(businessName, clientKey) {
@@ -115,33 +176,37 @@ app.get("/api/form-config", async (req, res) => {
   }
 });
 
-app.post("/api/register", async (req, res) => {
+app.post("/api/register", authLimiter, async (req, res) => {
   try {
-    const { username, email, password } = req.body ?? {};
+    const { username, email, password, captchaToken } = req.body ?? {};
+
+    const captchaError = await requireTurnstile(req, captchaToken);
+    if (captchaError) {
+      return res.status(400).json({ error: captchaError });
+    }
 
     if (!username?.trim() || !email?.trim() || !password) {
       return res.status(400).json({ error: "Semua field wajib diisi." });
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(String(email).trim())) {
+    const normalizedUsername = trimString(username, LIMITS.username);
+    const normalizedEmail = trimString(email, 254).toLowerCase();
+
+    if (!normalizedUsername) {
+      return res.status(400).json({ error: "Username tidak valid." });
+    }
+
+    if (!emailRegex.test(normalizedEmail)) {
       return res.status(400).json({ error: "Format email tidak valid." });
     }
 
-    if (String(password).length < 6) {
-      return res.status(400).json({ error: "Password minimal 6 karakter." });
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+      return res.status(400).json({ error: passwordError });
     }
 
-    const normalizedUsername = String(username).trim();
-    const normalizedEmail = String(email).trim().toLowerCase();
-
-    const { data: existingUsername } = await supabaseAdmin
-      .from("profiles")
-      .select("id")
-      .ilike("username", normalizedUsername)
-      .maybeSingle();
-
-    if (existingUsername) {
+    if (await isUsernameTaken(normalizedUsername)) {
       return res.status(409).json({ error: "Username sudah digunakan." });
     }
 
@@ -168,7 +233,7 @@ app.post("/api/register", async (req, res) => {
         return res.status(409).json({ error: "Email sudah terdaftar." });
       }
       console.error("Register auth error:", error);
-      return res.status(400).json({ error: error.message });
+      return res.status(400).json({ error: "Pendaftaran gagal. Periksa data Anda." });
     }
 
     if (!data.user) {
@@ -202,7 +267,7 @@ app.post("/api/register", async (req, res) => {
   }
 });
 
-app.post("/api/login", async (req, res) => {
+app.post("/api/login", authLimiter, async (req, res) => {
   try {
     const { email, password } = req.body ?? {};
 
@@ -225,15 +290,21 @@ app.post("/api/login", async (req, res) => {
       return res.status(404).json({ error: "Profil owner tidak ditemukan." });
     }
 
+    setAuthCookie(res, data.session.access_token);
+
     return res.json({
       message: "Login berhasil.",
-      token: data.session.access_token,
       user: mapProfile(profile),
     });
   } catch (error) {
     console.error("Login error:", error);
     return res.status(500).json({ error: "Terjadi kesalahan server." });
   }
+});
+
+app.post("/api/logout", (_req, res) => {
+  clearAuthCookie(res);
+  return res.json({ message: "Logout berhasil." });
 });
 
 app.get("/api/me", async (req, res) => {
@@ -266,7 +337,7 @@ app.patch("/api/me/settings", async (req, res) => {
     const updates = {};
 
     if (businessName !== undefined) {
-      const trimmed = String(businessName).trim();
+      const trimmed = trimString(businessName, LIMITS.businessName);
       if (!trimmed) {
         return res.status(400).json({ error: "Nama usaha tidak boleh kosong." });
       }
@@ -274,10 +345,11 @@ app.patch("/api/me/settings", async (req, res) => {
     }
 
     if (aspects !== undefined) {
-      if (!Array.isArray(aspects) || aspects.length === 0) {
+      const normalizedAspects = normalizeAspects(aspects);
+      if (normalizedAspects.length === 0) {
         return res.status(400).json({ error: "Minimal satu aspek diperlukan." });
       }
-      updates.aspects = aspects.map((item) => String(item).trim()).filter(Boolean);
+      updates.aspects = normalizedAspects;
     }
 
     if (Object.keys(updates).length === 0) {
@@ -303,7 +375,7 @@ app.patch("/api/me/settings", async (req, res) => {
   }
 });
 
-app.post("/api/feedback", async (req, res) => {
+app.post("/api/feedback", feedbackLimiter, async (req, res) => {
   try {
     const {
       businessName,
@@ -312,15 +384,27 @@ app.post("/api/feedback", async (req, res) => {
       rating,
       text,
       aspects,
-      clientId,
+      captchaToken,
     } = req.body ?? {};
 
-    if (!businessName?.trim() || !rating) {
-      return res.status(400).json({ error: "Nama usaha dan rating wajib diisi." });
+    const captchaError = await requireTurnstile(req, captchaToken);
+    if (captchaError) {
+      return res.status(400).json({ error: captchaError });
     }
 
-    const trimmedBusinessName = String(businessName).trim();
-    const clientKey = buildClientKey(req, clientId);
+    const trimmedBusinessName = trimString(businessName, LIMITS.businessName);
+    const parsedRating = parseRating(rating);
+
+    if (!trimmedBusinessName || parsedRating === null) {
+      return res.status(400).json({ error: "Nama usaha dan rating (1–4) wajib diisi." });
+    }
+
+    const owner = await findProfileByBusinessName(trimmedBusinessName);
+    if (!owner) {
+      return res.status(404).json({ error: "Nama usaha tidak ditemukan." });
+    }
+
+    const clientKey = buildSubmissionKey(req);
 
     if (await hasSubmissionLock(trimmedBusinessName, clientKey)) {
       return res.status(409).json({
@@ -335,20 +419,18 @@ app.post("/api/feedback", async (req, res) => {
       });
     }
 
-    const owner = await findProfileByBusinessName(trimmedBusinessName);
-
     const { data, error } = await supabaseAdmin
       .from("feedbacks")
       .insert({
-        owner_id: owner?.id ?? null,
+        owner_id: owner.id,
         business_name: trimmedBusinessName,
         consumer_name: isAnonymous
           ? null
-          : String(consumerName ?? "").trim() || null,
+          : trimString(consumerName, LIMITS.consumerName) || null,
         is_anonymous: Boolean(isAnonymous),
-        rating: Number(rating),
-        text: String(text ?? "").trim(),
-        aspects: Array.isArray(aspects) ? aspects : [],
+        rating: parsedRating,
+        text: trimString(text, LIMITS.feedbackText),
+        aspects: normalizeAspects(aspects),
       })
       .select("*")
       .single();
