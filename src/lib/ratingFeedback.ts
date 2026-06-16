@@ -67,12 +67,15 @@ export async function playRatingTing(rating: number) {
   const oscillator = context.createOscillator();
   const gain = context.createGain();
 
-  oscillator.type = rating === 4 ? "triangle" : "sine";
+  oscillator.type = rating === 4 ? "triangle" : rating === 1 ? "sawtooth" : "sine";
   oscillator.frequency.setValueAtTime(baseFrequency, now);
 
   gain.gain.setValueAtTime(0.0001, now);
-  gain.gain.exponentialRampToValueAtTime(rating === 4 ? 0.32 : 0.22, now + 0.012);
-  gain.gain.exponentialRampToValueAtTime(0.0001, now + (rating === 4 ? 0.28 : 0.16));
+  gain.gain.exponentialRampToValueAtTime(
+    rating === 4 ? 0.32 : rating === 1 ? 0.26 : 0.22,
+    now + 0.012,
+  );
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + (rating === 4 ? 0.28 : rating === 1 ? 0.22 : 0.16));
 
   oscillator.connect(gain);
   gain.connect(context.destination);
@@ -124,4 +127,33 @@ export function fireRatingCelebration() {
     burst({ x: 0.35, y: 0.2 }, 55);
     burst({ x: 0.65, y: 0.2 }, 55);
   }, 150);
+}
+
+const FIRE_COLORS = ["#FF4500", "#FF5722", "#FF9800", "#FFD54F", "#DC2626", "#FFEB3B"];
+
+export function fireBadRatingEffect() {
+  const shoot = getCelebrationConfetti() ?? confetti;
+
+  const burst = (origin: { x: number; y: number }, particleCount = 50) => {
+    shoot({
+      particleCount,
+      angle: 90,
+      spread: 65,
+      startVelocity: 42,
+      gravity: 0.55,
+      ticks: 160,
+      scalar: 0.95,
+      origin,
+      colors: FIRE_COLORS,
+      disableForReducedMotion: false,
+    });
+  };
+
+  burst({ x: 0.125, y: 0.78 }, 65);
+  burst({ x: 0.125, y: 0.68 }, 45);
+
+  window.setTimeout(() => {
+    burst({ x: 0.19, y: 0.74 }, 35);
+    burst({ x: 0.08, y: 0.74 }, 35);
+  }, 120);
 }

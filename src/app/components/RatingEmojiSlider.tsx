@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "motion/react";
-import { fireRatingCelebration, playRatingTing } from "@/lib/ratingFeedback";
+import { fireBadRatingEffect, fireRatingCelebration, playRatingTing } from "@/lib/ratingFeedback";
 
 export interface RatingTheme {
   background: string;
@@ -158,6 +158,10 @@ export function RatingEmojiSlider({ value, onChange, theme }: RatingEmojiSliderP
       fireRatingCelebration();
     }
 
+    if (nextValue === 1) {
+      fireBadRatingEffect();
+    }
+
     onChange(nextValue);
   };
 
@@ -167,6 +171,7 @@ export function RatingEmojiSlider({ value, onChange, theme }: RatingEmojiSliderP
         {RATING_OPTIONS.map((option) => {
           const isActive = activeValue === option.value;
           const isLuarBiasa = option.value === 4;
+          const isBuruk = option.value === 1;
           const shouldPop = popState?.value === option.value;
           const popKey = shouldPop ? popState.tick : "idle";
 
@@ -178,6 +183,40 @@ export function RatingEmojiSlider({ value, onChange, theme }: RatingEmojiSliderP
               className="flex flex-col items-center gap-1.5 min-w-0 px-0.5 overflow-visible"
             >
               <span className="relative inline-flex items-center justify-center overflow-visible p-1">
+                {shouldPop && isBuruk && (
+                  <>
+                    <motion.span
+                      key={`burn-${popKey}`}
+                      className="absolute inset-0 rounded-full bg-orange-500/55"
+                      initial={{ scale: 0.55, opacity: 0.9 }}
+                      animate={{ scale: 2.4, opacity: 0 }}
+                      transition={{ duration: 0.7, ease: "easeOut" }}
+                      aria-hidden
+                    />
+                    {[0, 1, 2, 3].map((index) => (
+                      <motion.span
+                        key={`flame-${popKey}-${index}`}
+                        className="absolute text-[13px] sm:text-[15px] pointer-events-none select-none"
+                        initial={{
+                          opacity: 0.95,
+                          y: 2,
+                          x: (index - 1.5) * 9,
+                          scale: 0.75,
+                        }}
+                        animate={{
+                          opacity: 0,
+                          y: -32 - index * 5,
+                          x: (index - 1.5) * 14,
+                          scale: 1.15,
+                        }}
+                        transition={{ duration: 0.75, delay: index * 0.06, ease: "easeOut" }}
+                        aria-hidden
+                      >
+                        🔥
+                      </motion.span>
+                    ))}
+                  </>
+                )}
                 {shouldPop && isLuarBiasa && (
                   <motion.span
                     key={`glow-${popKey}`}
@@ -196,12 +235,21 @@ export function RatingEmojiSlider({ value, onChange, theme }: RatingEmojiSliderP
                   initial={false}
                   animate={
                     shouldPop
-                      ? { scale: [1, 1.55, 0.92, 1.15, isActive ? 1.12 : 1], rotate: isLuarBiasa ? [0, -8, 8, 0] : 0 }
+                      ? {
+                          scale: isBuruk
+                            ? [1, 1.45, 0.9, 1.18, isActive ? 1.12 : 1]
+                            : [1, 1.55, 0.92, 1.15, isActive ? 1.12 : 1],
+                          rotate: isLuarBiasa
+                            ? [0, -8, 8, 0]
+                            : isBuruk
+                              ? [0, -14, 14, -10, 10, 0]
+                              : 0,
+                        }
                       : { scale: isActive ? 1.12 : 1, rotate: 0 }
                   }
                   transition={{
-                    duration: isLuarBiasa ? 0.55 : 0.42,
-                    ease: [0.34, 1.56, 0.64, 1],
+                    duration: isLuarBiasa ? 0.55 : isBuruk ? 0.5 : 0.42,
+                    ease: isBuruk ? [0.36, 0.07, 0.19, 0.97] : [0.34, 1.56, 0.64, 1],
                   }}
                 >
                   {option.emoji}
