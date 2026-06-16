@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "motion/react";
-import { fireBadRatingEffect, fireRatingCelebration, playRatingTing } from "@/lib/ratingFeedback";
+import { fireRatingCelebration, playRatingTing } from "@/lib/ratingFeedback";
 
 export interface RatingTheme {
   background: string;
@@ -156,10 +156,6 @@ export function RatingEmojiSlider({ value, onChange, theme }: RatingEmojiSliderP
 
     if (nextValue === 4) {
       fireRatingCelebration();
-    }
-
-    if (nextValue === 1) {
-      fireBadRatingEffect();
     }
 
     onChange(nextValue);
