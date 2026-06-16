@@ -155,9 +155,7 @@ export function RatingEmojiSlider({ value, onChange, theme }: RatingEmojiSliderP
     setPopState({ tick: Date.now(), value: nextValue });
 
     if (nextValue === 4) {
-      window.requestAnimationFrame(() => {
-        fireRatingCelebration();
-      });
+      fireRatingCelebration();
     }
 
     onChange(nextValue);

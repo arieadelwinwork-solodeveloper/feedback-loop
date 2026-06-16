@@ -7,7 +7,18 @@ const PITCH_BY_RATING: Record<number, number> = {
   4: 783.99,
 };
 
+const CONFETTI_COLORS = [
+  "#FFFFFF",
+  "#FF2D55",
+  "#007AFF",
+  "#34C759",
+  "#FFD60A",
+  "#BF5AF2",
+  "#FF6B00",
+];
+
 let sharedContext: AudioContext | null = null;
+let celebrationConfetti: ReturnType<typeof confetti.create> | null = null;
 
 function getAudioContext() {
   if (typeof window === "undefined") return null;
@@ -17,6 +28,29 @@ function getAudioContext() {
   }
 
   return sharedContext;
+}
+
+function getCelebrationConfetti() {
+  if (typeof document === "undefined") return null;
+
+  if (celebrationConfetti) return celebrationConfetti;
+
+  const canvas = document.createElement("canvas");
+  canvas.setAttribute("aria-hidden", "true");
+  canvas.style.position = "fixed";
+  canvas.style.inset = "0";
+  canvas.style.width = "100%";
+  canvas.style.height = "100%";
+  canvas.style.pointerEvents = "none";
+  canvas.style.zIndex = "999999";
+  document.body.appendChild(canvas);
+
+  celebrationConfetti = confetti.create(canvas, {
+    resize: true,
+    useWorker: false,
+  });
+
+  return celebrationConfetti;
 }
 
 export async function playRatingTing(rating: number) {
@@ -66,35 +100,28 @@ export async function playRatingTing(rating: number) {
 }
 
 export function fireRatingCelebration() {
-  if (typeof window === "undefined") return;
+  const shoot = getCelebrationConfetti() ?? confetti;
 
-  const origin = { x: 0.5, y: 0.22 };
+  const burst = (origin: { x: number; y: number }, particleCount = 90) => {
+    shoot({
+      particleCount,
+      spread: 110,
+      startVelocity: 48,
+      gravity: 0.9,
+      ticks: 240,
+      scalar: 1.15,
+      origin,
+      colors: CONFETTI_COLORS,
+      disableForReducedMotion: false,
+    });
+  };
 
-  confettiBurst({ ...origin, particleCount: 100, spread: 80, startVelocity: 42 });
-  confettiBurst({ ...origin, particleCount: 50, spread: 120, scalar: 0.9, ticks: 200 });
+  burst({ x: 0.5, y: 0.12 }, 120);
+  burst({ x: 0.15, y: 0.3 }, 70);
+  burst({ x: 0.85, y: 0.3 }, 70);
 
   window.setTimeout(() => {
-    confettiBurst({ ...origin, particleCount: 40, spread: 60, startVelocity: 32, angle: 60 });
-    confettiBurst({ ...origin, particleCount: 40, spread: 60, startVelocity: 32, angle: 120 });
-  }, 140);
-}
-
-function confettiBurst(options: ConfettiBurstOptions) {
-  confetti({
-    disableForReducedMotion: true,
-    colors: ["#FFFFFF", "#FFD60A", "#FF9F0A", "#FDE68A", "#FBBF24"],
-    zIndex: 99999,
-    useWorker: false,
-    ...options,
-  });
-}
-
-interface ConfettiBurstOptions {
-  particleCount: number;
-  spread: number;
-  origin: { x: number; y: number };
-  startVelocity?: number;
-  scalar?: number;
-  ticks?: number;
-  angle?: number;
+    burst({ x: 0.35, y: 0.2 }, 55);
+    burst({ x: 0.65, y: 0.2 }, 55);
+  }, 150);
 }
