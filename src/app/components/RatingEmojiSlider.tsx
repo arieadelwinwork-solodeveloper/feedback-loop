@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { motion } from "motion/react";
 import { fireRatingCelebration, playRatingTing } from "@/lib/ratingFeedback";
 
 export interface RatingTheme {
@@ -143,7 +144,7 @@ interface RatingEmojiSliderProps {
 }
 
 export function RatingEmojiSlider({ value, onChange, theme }: RatingEmojiSliderProps) {
-  const [popValue, setPopValue] = useState<number | null>(null);
+  const [popState, setPopState] = useState<{ tick: number; value: number } | null>(null);
   const activeValue = value;
   const sliderPercent = ((activeValue - 1) / (RATING_OPTIONS.length - 1)) * 100;
 
@@ -151,62 +152,65 @@ export function RatingEmojiSlider({ value, onChange, theme }: RatingEmojiSliderP
     if (nextValue === value) return;
 
     void playRatingTing(nextValue);
-    setPopValue(nextValue);
-    window.setTimeout(() => setPopValue(null), 420);
+    setPopState({ tick: Date.now(), value: nextValue });
 
     if (nextValue === 4) {
-      fireRatingCelebration();
+      window.requestAnimationFrame(() => {
+        fireRatingCelebration();
+      });
     }
 
     onChange(nextValue);
   };
 
   return (
-    <div className="w-full">
-      <style>{`
-        @keyframes emoji-pop-bounce {
-          0% { transform: scale(1); }
-          35% { transform: scale(1.45); }
-          60% { transform: scale(0.92); }
-          80% { transform: scale(1.12); }
-          100% { transform: scale(1.1); }
-        }
-        @keyframes luar-biasa-glow {
-          0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.55); transform: scale(1); }
-          50% { box-shadow: 0 0 0 12px rgba(255, 255, 255, 0); transform: scale(1.15); }
-          100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); transform: scale(1.1); }
-        }
-        .emoji-pop-active {
-          animation: emoji-pop-bounce 0.42s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-        .luar-biasa-glow {
-          animation: luar-biasa-glow 0.65s ease-out;
-        }
-      `}</style>
-
+    <div className="w-full overflow-visible">
       <div className="grid grid-cols-4 gap-0.5 sm:gap-1 mb-4 overflow-visible px-0.5">
         {RATING_OPTIONS.map((option) => {
           const isActive = activeValue === option.value;
-          const shouldPop = popValue === option.value;
+          const isLuarBiasa = option.value === 4;
+          const shouldPop = popState?.value === option.value;
+          const popKey = shouldPop ? popState.tick : "idle";
 
           return (
             <button
               key={option.value}
               type="button"
               onClick={() => handleValueChange(option.value)}
-              className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform min-w-0 px-0.5"
+              className="flex flex-col items-center gap-1.5 min-w-0 px-0.5 overflow-visible"
             >
-              <span
-                className={`relative inline-flex items-center justify-center text-[26px] sm:text-[28px] leading-none transition-all duration-200 ${
-                  isActive ? "opacity-100" : "opacity-35 grayscale"
-                } ${shouldPop ? "emoji-pop-active" : isActive ? "scale-110" : "scale-100"} ${
-                  shouldPop && option.value === 4 ? "luar-biasa-glow" : ""
-                }`}
-              >
-                {option.emoji}
+              <span className="relative inline-flex items-center justify-center overflow-visible p-1">
+                {shouldPop && isLuarBiasa && (
+                  <motion.span
+                    key={`glow-${popKey}`}
+                    className="absolute inset-0 rounded-full bg-white/35"
+                    initial={{ scale: 0.6, opacity: 0.85 }}
+                    animate={{ scale: 2.2, opacity: 0 }}
+                    transition={{ duration: 0.65, ease: "easeOut" }}
+                    aria-hidden
+                  />
+                )}
+                <motion.span
+                  key={`emoji-${option.value}-${popKey}`}
+                  className={`relative inline-flex items-center justify-center text-[26px] sm:text-[30px] leading-none ${
+                    isActive ? "opacity-100" : "opacity-35 grayscale"
+                  }`}
+                  initial={false}
+                  animate={
+                    shouldPop
+                      ? { scale: [1, 1.55, 0.92, 1.15, isActive ? 1.12 : 1], rotate: isLuarBiasa ? [0, -8, 8, 0] : 0 }
+                      : { scale: isActive ? 1.12 : 1, rotate: 0 }
+                  }
+                  transition={{
+                    duration: isLuarBiasa ? 0.55 : 0.42,
+                    ease: [0.34, 1.56, 0.64, 1],
+                  }}
+                >
+                  {option.emoji}
+                </motion.span>
               </span>
               <span
-                className={`text-[9px] sm:text-[10px] leading-tight text-center transition-colors duration-300 max-w-full truncate px-0.5 ${
+                className={`text-[9px] sm:text-[10px] leading-tight text-center max-w-full truncate px-0.5 ${
                   isActive ? theme.labelActiveClass : theme.labelIdleClass
                 }`}
               >

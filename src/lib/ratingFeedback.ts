@@ -68,22 +68,23 @@ export async function playRatingTing(rating: number) {
 export function fireRatingCelebration() {
   if (typeof window === "undefined") return;
 
-  const origin = { y: 0.18 };
+  const origin = { x: 0.5, y: 0.22 };
 
-  confettiBurst({ ...origin, particleCount: 90, spread: 75, startVelocity: 38 });
-  confettiBurst({ ...origin, particleCount: 45, spread: 110, scalar: 0.85, ticks: 180 });
+  confettiBurst({ ...origin, particleCount: 100, spread: 80, startVelocity: 42 });
+  confettiBurst({ ...origin, particleCount: 50, spread: 120, scalar: 0.9, ticks: 200 });
 
   window.setTimeout(() => {
-    confettiBurst({ ...origin, particleCount: 35, spread: 55, startVelocity: 28, angle: 60 });
-    confettiBurst({ ...origin, particleCount: 35, spread: 55, startVelocity: 28, angle: 120 });
-  }, 120);
+    confettiBurst({ ...origin, particleCount: 40, spread: 60, startVelocity: 32, angle: 60 });
+    confettiBurst({ ...origin, particleCount: 40, spread: 60, startVelocity: 32, angle: 120 });
+  }, 140);
 }
 
 function confettiBurst(options: ConfettiBurstOptions) {
   confetti({
     disableForReducedMotion: true,
     colors: ["#FFFFFF", "#FFD60A", "#FF9F0A", "#FDE68A", "#FBBF24"],
-    zIndex: 9999,
+    zIndex: 99999,
+    useWorker: false,
     ...options,
   });
 }
@@ -91,7 +92,7 @@ function confettiBurst(options: ConfettiBurstOptions) {
 interface ConfettiBurstOptions {
   particleCount: number;
   spread: number;
-  origin: { y: number };
+  origin: { x: number; y: number };
   startVelocity?: number;
   scalar?: number;
   ticks?: number;

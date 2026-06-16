@@ -158,7 +158,7 @@ export function LaundryFeedbackForm() {
       style={{ background: theme.pageBackground }}
     >
       <div
-        className="w-full max-w-[420px] min-w-0 rounded-[20px] shadow-[0_8px_30px_rgb(0,0,0,0.12)] overflow-hidden transition-[background] duration-500 ease-out"
+        className="w-full max-w-[420px] min-w-0 rounded-[20px] shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-[background] duration-500 ease-out"
         style={{ background: theme.background }}
       >
         <div className="p-5 sm:p-6 pb-6 sm:pb-7 relative z-10 overflow-visible">
@@ -173,7 +173,7 @@ export function LaundryFeedbackForm() {
           <RatingEmojiSlider value={score} onChange={setScore} theme={theme} />
         </div>
 
-        <div className="px-4 sm:px-5 py-6 space-y-7 min-w-0">
+        <div className="px-4 sm:px-5 py-6 space-y-7 min-w-0 overflow-x-hidden">
           
           <div>
             <div className={`rounded-xl border overflow-hidden ${theme.surface} ${theme.surfaceBorder}`}>
